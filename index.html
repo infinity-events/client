@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Utente</title>
+</head>
+<body>
+    Utente
+    <p id="messages"></p>
+</body>
+<script>
+     let stream;
+     let videoTrack;
+
+     // Funzione per richiedere l'accesso alla fotocamera
+    function requestCameraAccess() {
+      return navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .then(s => {
+          stream = s;
+          videoTrack = stream.getVideoTracks()[0];
+          console.log('Camera access granted');
+        })
+        .catch(error => {
+          console.error('Error accessing camera:', error);
+        });
+    }
+
+    // Funzione per accendere la torcia
+    function turnOnFlashlight() {
+      if (videoTrack) {
+        videoTrack.applyConstraints({ advanced: [{ torch: true }] })
+          .then(() => console.log('Flashlight turned on'))
+          .catch(error => console.error('Error turning on flashlight:', error));
+      }
+    }
+
+    // Funzione per spegnere la torcia
+    function turnOffFlashlight() {
+      if (videoTrack) {
+        videoTrack.applyConstraints({ advanced: [{ torch: false }] })
+          .then(() => console.log('Flashlight turned off'))
+          .catch(error => console.error('Error turning off flashlight:', error));
+      }
+    }
+
+    // Create WebSocket connection.
+    const socket = new WebSocket('ws://localhost:3000');
+
+    // Connection opened
+    socket.addEventListener('open', function (event) {
+        console.log('Connected to WS Server')
+    });
+
+    // Listen for messages
+    socket.addEventListener('message', function (event) {
+        console.log('Message from server ', event.data);
+
+    });
+
+    // Gestisci l'arrivo di nuovi messaggi
+    socket.onmessage = function(event) {
+        const command = event.data;
+        console.log('Command received:', command);
+        // Mostra il messaggio nella pagina
+        const messagesDiv = document.getElementById('messages');
+        const message = document.getElementById('messages');
+        message.textContent = `${event.data}`;
+        messagesDiv.appendChild(message);
+    };
+
+    // Gestisci gli errori di connessione
+    socket.onerror = function(error) {
+      console.error('WebSocket error:', error);
+    };
+
+   socket.onmessage = function(event) {
+      const command = event.data;
+      console.log('Command received:', command);
+
+      if (command === 'accendi') {
+        turnOnFlashlight();
+      } else if (command === 'spegni') {
+        turnOffFlashlight();
+      }
+    };
+
+    socket.onopen = function() {
+      console.log('Connected to server');
+      requestCameraAccess();
+    };
+
+    socket.onerror = function(error) {
+      console.error('WebSocket error:', error);
+    };
+</script>
+</html>
